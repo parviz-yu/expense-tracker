@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
+	"time"
 )
 
 type Money float64
@@ -31,4 +33,21 @@ func (m Money) ToSmallUnit() int {
 
 func (m Money) IsPositive() bool {
 	return m >= 0
+}
+
+type CustomTime struct {
+	time.Time
+}
+
+const layout = "02-01-2006"
+
+func (ct *CustomTime) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	if s == "null" {
+		ct.Time = time.Time{}
+		return
+	}
+
+	ct.Time, err = time.Parse(layout, s)
+	return
 }

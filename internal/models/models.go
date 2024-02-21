@@ -7,11 +7,11 @@ import (
 )
 
 type ExpenseReq struct {
-	UserID      string      `json:"user_id"`
-	Category    string      `json:"category"`
-	Amount      types.Money `json:"amount"`
-	Description string      `json:"description"`
-	Date        time.Time   `json:"date"`
+	UserID      string           `json:"user_id"`
+	Category    string           `json:"category"`
+	Amount      types.Money      `json:"amount"`
+	Description string           `json:"description,omitempty"`
+	Date        types.CustomTime `json:"date"`
 }
 
 type ExpenseInner struct {
