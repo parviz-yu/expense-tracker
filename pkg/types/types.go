@@ -51,3 +51,7 @@ func (ct *CustomTime) UnmarshalJSON(b []byte) (err error) {
 	ct.Time, err = time.Parse(Layout, s)
 	return
 }
+
+func (ct *CustomTime) MarshalJSON() ([]byte, error) {
+	return []byte(ct.Format(Layout)), nil
+}
