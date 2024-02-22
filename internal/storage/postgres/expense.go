@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/parviz-yu/expense-tracker/internal/models"
 )
@@ -41,4 +42,84 @@ func (r *expensesRepo) AddExpense(ctx context.Context, expense *models.ExpenseIn
 	}
 
 	return nil
+}
+
+func (r *expensesRepo) GetAllUsersStats(ctx context.Context, filters *models.Filters) ([]*models.UsersStats, error) {
+	const fn = "storage.postgres.GetAllUsersStats"
+
+	queryStart := `SELECT c.name, COALESCE(e.user_id, ''), COALESCE(SUM(e.amount), 0), COUNT(e.amount)
+	FROM categories c LEFT JOIN expenses e ON c.id=e.category_id`
+
+	queryEnd := `GROUP BY c.name, e.user_id ORDER BY c.name`
+
+	filtersSlice := make([]string, 0)
+	params := make([]interface{}, 0)
+	if filters.Category != "" {
+		filtersSlice = append(filtersSlice, "c.name = ?")
+		params = append(params, filters.Category)
+	}
+
+	if !filters.StartDate.IsZero() {
+		filtersSlice = append(filtersSlice, "e.date >= ?")
+		params = append(params, filters.StartDate)
+	}
+
+	if !filters.EndDate.IsZero() {
+		filtersSlice = append(filtersSlice, "e.date <= ?")
+		params = append(params, filters.EndDate)
+	}
+
+	if filters.MinAmount > 0 {
+		filtersSlice = append(filtersSlice, "e.amount >= ?")
+		params = append(params, filters.MinAmount)
+	}
+
+	if filters.MaxAmount != 0 {
+		filtersSlice = append(filtersSlice, "e.amount <= ?")
+		params = append(params, filters.MaxAmount)
+	}
+
+	whereClause := ""
+	if len(filtersSlice) != 0 {
+		whereClause = fmt.Sprintf("WHERE %s", strings.Join(filtersSlice, " AND "))
+		whereClause = putPlaceholders(whereClause, len(filtersSlice))
+	}
+
+	query := fmt.Sprintf("%s %s %s", queryStart, whereClause, queryEnd)
+
+	stmt, err := r.db.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	rows, err := stmt.QueryContext(ctx, params...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+	defer rows.Close()
+
+	stats := make([]*models.UsersStats, 0)
+	for rows.Next() {
+		stat := &models.UsersStats{}
+		err := rows.Scan(&stat.Category, &stat.UserID, &stat.Sum, &stat.Count)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", fn, err)
+		}
+
+		stats = append(stats, stat)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return stats, nil
+}
+
+func putPlaceholders(line string, n int) string {
+	for i := 1; i <= n; i++ {
+		s := fmt.Sprintf("$%d", i)
+		line = strings.Replace(line, "?", s, 1)
+	}
+
+	return line
 }
