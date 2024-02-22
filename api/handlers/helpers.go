@@ -15,9 +15,15 @@ func Error(w http.ResponseWriter, r *http.Request, code int, err error) {
 }
 
 func Respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	if data != nil {
 		json.NewEncoder(w).Encode(data)
 	}
+}
+
+func URLQueryParam(r *http.Request, key string) string {
+	vals := r.URL.Query()
+	return vals.Get(key)
 }

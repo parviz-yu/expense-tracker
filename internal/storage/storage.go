@@ -18,4 +18,5 @@ type CategoryRepoI interface {
 
 type ExpenseRepoI interface {
 	AddExpense(ctx context.Context, expense *models.ExpenseInner) error
+	GetAllUsersStats(ctx context.Context, filters *models.Filters) ([]*models.UsersStats, error)
 }
