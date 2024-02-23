@@ -10,4 +10,5 @@ var (
 	ErrInvalidDateRange     = errors.New("invalid date range")
 	ErrInvalidDateFormat    = errors.New("invalid date format")
 	ErrInvalidMinMaxAmounts = errors.New("invalid min max amounts")
+	ErrEmptyUserIDParam     = errors.New("empty id param in URL")
 )

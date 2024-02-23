@@ -15,7 +15,7 @@ import (
 type ServiceI interface {
 	AddExpense(ctx context.Context, expenseReq *models.ExpenseReq) error
 	GetCategoriesExpenses(ctx context.Context, filters *models.Filters) ([]*models.CategoryExpensesResp, error)
-	GetUserExpenses(ctx context.Context, userID string, filters *models.Filters, verbose bool) ([]*models.UserExpensesResp, error)
+	GetUserExpenses(ctx context.Context, userID string, filters *models.Filters) ([]*models.UserExpensesResp, error)
 }
 
 type service struct {
@@ -137,7 +137,7 @@ func (s *service) GetCategoriesExpenses(ctx context.Context, filters *models.Fil
 	return categoryExpensesResp, nil
 }
 
-func (s *service) GetUserExpenses(ctx context.Context, userID string, filters *models.Filters, verbose bool) ([]*models.UserExpensesResp, error) {
+func (s *service) GetUserExpenses(ctx context.Context, userID string, filters *models.Filters) ([]*models.UserExpensesResp, error) {
 	const fn = "service.GetUserExpenses"
 
 	log := logger.With(
