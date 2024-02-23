@@ -97,14 +97,14 @@ func (r *expensesRepo) GetUserStats(ctx context.Context, userID string, filters 
     	COALESCE(COUNT(e.amount) OVER w, 0) AS total_count
 	FROM categories c LEFT JOIN expenses e ON c.id=e.category_id`
 
-	queryEnd := "WINDOW w AS (PARTITION BY c.name ORDER BY c.name)"
+	queryEnd := "WINDOW w AS (PARTITION BY c.name)"
 
 	filtersSlice, params := checkFilters(filters)
-	whereClause := "WHERE e.user_id=?"
-	if len(filtersSlice) != 0 {
-		whereClause = fmt.Sprintf("WHERE %s", strings.Join(filtersSlice, " AND "))
-		whereClause = putPlaceholders(whereClause, len(filtersSlice))
-	}
+	filtersSlice = append(filtersSlice, "e.user_id=?")
+	params = append(params, userID)
+
+	whereClause := fmt.Sprintf("WHERE %s", strings.Join(filtersSlice, " AND "))
+	whereClause = putPlaceholders(whereClause, len(filtersSlice))
 
 	query := fmt.Sprintf("%s %s %s", queryStart, whereClause, queryEnd)
 

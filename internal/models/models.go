@@ -60,13 +60,13 @@ type UserStats struct {
 }
 
 type UserExpenseExtended struct {
-	Description string           `json:"description"`
 	Amount      types.Money      `json:"amount"`
+	Description string           `json:"description"`
 	Date        types.CustomTime `json:"date"`
 }
 type UserExpensesResp struct {
-	Category      string             `json:"category"`
-	TotalExpenses types.Money        `json:"total_expenses"`
-	ExpensesCount int                `json:"expenses_count"`
-	UserExpenses  []UserExpensesResp `json:"expenses"`
+	Category      string                `json:"category"`
+	TotalExpenses types.Money           `json:"total_expenses"`
+	ExpensesCount int                   `json:"expenses_count"`
+	UserExpenses  []UserExpenseExtended `json:"expenses"`
 }
