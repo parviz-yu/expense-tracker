@@ -40,3 +40,16 @@ func (r *categoriesRepo) GetCategoryID(ctx context.Context, name string) (int, e
 
 	return id, nil
 }
+
+func (r *categoriesRepo) AddNewCategory(ctx context.Context, name string) error {
+	const fn = "storage.postgres.AddNewCategory"
+
+	query := "INSERT INTO categories (name) VALUES ($1)"
+
+	_, err := r.db.ExecContext(ctx, query, name)
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return nil
+}

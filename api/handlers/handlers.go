@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/parviz-yu/expense-tracker/internal/models"
 	"github.com/parviz-yu/expense-tracker/internal/service"
 	"github.com/parviz-yu/expense-tracker/pkg/errs"
@@ -45,6 +46,14 @@ func (h *Handler) AddExpense(w http.ResponseWriter, r *http.Request) {
 		Error(w, r, http.StatusBadRequest, errs.ErrInvalidRequestBody)
 		return
 	}
+	defer r.Body.Close()
+
+	if err := validator.New().Struct(req); err != nil {
+		log.Error("invalid request body", logger.Error(err))
+
+		Error(w, r, http.StatusBadRequest, errs.ErrInvalidRequestBody)
+		return
+	}
 
 	if !req.Amount.IsPositive() {
 		log.Warn(errs.ErrNegativeAmount.Error(), logger.Any("req", req))
@@ -70,8 +79,45 @@ func (h *Handler) AddExpense(w http.ResponseWriter, r *http.Request) {
 	Respond(w, r, http.StatusOK, nil)
 }
 
+func (h *Handler) AddNewCategory(w http.ResponseWriter, r *http.Request) {
+	const fn = "handlers.AddNewCategory"
+
+	log := logger.With(
+		h.log,
+		logger.String("fn", fn),
+		logger.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	req := models.CategoryReq{}
+	jsonDec := json.NewDecoder(r.Body)
+	jsonDec.DisallowUnknownFields()
+	if err := jsonDec.Decode(&req); err != nil {
+		log.Error(err.Error())
+
+		Error(w, r, http.StatusBadRequest, errs.ErrInvalidRequestBody)
+		return
+	}
+	defer r.Body.Close()
+
+	err := h.svc.AddNewCategory(r.Context(), req.Category)
+	if errors.Is(err, errs.ErrCategoryAlreadyExists) {
+		log.Warn(err.Error(), logger.Any("req", req))
+
+		Error(w, r, http.StatusOK, errs.ErrCategoryAlreadyExists)
+		return
+	}
+	if err != nil {
+		log.Error(err.Error(), logger.Any("req", req))
+
+		Error(w, r, http.StatusInternalServerError, errs.ErrInternalServerError)
+		return
+	}
+
+	Respond(w, r, http.StatusOK, nil)
+}
+
 func (h *Handler) UsersCategoriesStats(w http.ResponseWriter, r *http.Request) {
-	const fn = "handlers.GetAllUsersStats"
+	const fn = "handlers.UsersCategoriesStats"
 
 	log := logger.With(
 		h.log,
@@ -132,7 +178,7 @@ func (h *Handler) UsersCategoriesStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UserStats(w http.ResponseWriter, r *http.Request) {
-	const fn = "handlers.GetAllUsersStats"
+	const fn = "handlers.UserStats"
 
 	log := logger.With(
 		h.log,
