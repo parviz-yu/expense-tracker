@@ -3,9 +3,9 @@ version: '3.8'
 services:
   backend:
     build: .
-    container_name: digital-wallet-api
+    container_name: expense-tracker-api
     tty: true
-    # restart: always
+    restart: always
     expose:
       - 8080
     environment:
@@ -24,7 +24,7 @@ services:
 
   proxy:
     image: nginx:1.25.3
-    container_name: digital-wallet-proxy
+    container_name: expense-tracker-proxy
     restart: always
     ports:
       - "80:80"
@@ -36,7 +36,7 @@ services:
 
   db:
       image: postgres:15.5-bookworm
-      container_name: digital-wallet-db
+      container_name: expense-tracker-db
       expose:
         - 5432
       volumes:
