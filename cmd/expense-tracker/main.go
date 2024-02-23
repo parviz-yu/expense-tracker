@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/parviz-yu/expense-tracker/api"
 	"github.com/parviz-yu/expense-tracker/api/handlers"
@@ -40,9 +44,28 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server", logger.Error(err))
-		os.Exit(1)
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to start server", logger.Error(err))
+		}
+	}()
+
+	log.Info("server started")
+
+	<-done
+	log.Info("stopping server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("failed to stop server", logger.Error(err))
+		return
 	}
 
+	log.Info("server stopped")
 }
