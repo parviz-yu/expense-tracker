@@ -197,6 +197,7 @@ curl POST 'http://localhost:80/api/v1/tracker/stats/users/040d5fcb-2878-42e8-820
                 }
             ]
         }
+    ]
 }
 ```
 
