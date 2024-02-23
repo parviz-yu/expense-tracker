@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/parviz-yu/expense-tracker/internal/models"
@@ -14,6 +15,7 @@ import (
 type ServiceI interface {
 	AddExpense(ctx context.Context, expenseReq *models.ExpenseReq) error
 	GetCategoriesExpenses(ctx context.Context, filters *models.Filters) ([]*models.CategoryExpensesResp, error)
+	GetUserExpenses(ctx context.Context, userID string, filters *models.Filters) ([]*models.UserExpensesResp, error)
 }
 
 type service struct {
@@ -51,7 +53,7 @@ func (s *service) AddExpense(ctx context.Context, expenseReq *models.ExpenseReq)
 		CategoryID:  categoryID,
 		Amount:      expenseReq.Amount.ToSmallUnit(),
 		Description: expenseReq.Description,
-		Date:        expenseReq.Date.Time,
+		Date:        time.Time(expenseReq.Date),
 	}
 
 	log.Info("adding expense...")
@@ -133,4 +135,72 @@ func (s *service) GetCategoriesExpenses(ctx context.Context, filters *models.Fil
 	}
 
 	return categoryExpensesResp, nil
+}
+
+func (s *service) GetUserExpenses(ctx context.Context, userID string, filters *models.Filters) ([]*models.UserExpensesResp, error) {
+	const fn = "service.GetUserExpenses"
+
+	log := logger.With(
+		s.log,
+		logger.String("request_id", middleware.GetReqID(ctx)),
+		logger.Any("filters", *filters),
+	)
+
+	log.Info("checking category for existance...")
+
+	if filters.Category != "" {
+
+		_, err := s.strg.Category().GetCategoryID(ctx, filters.Category)
+		if err != nil {
+			log.Error("failed to get category_id", logger.Error(err))
+
+			return nil, fmt.Errorf("%s: %w", fn, err)
+		}
+	}
+
+	log.Info("getting user's expenses...")
+
+	userStats, err := s.strg.Expense().GetUserStats(ctx, userID, filters)
+	if err != nil {
+		log.Error("failed to get user's stats", logger.Error(err))
+
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	userExpensesResp := make([]*models.UserExpensesResp, 0)
+	if len(userStats) == 0 {
+		log.Info("empty result with these filters")
+
+		return userExpensesResp, nil
+	}
+
+	prevCategory := ""
+	var result *models.UserExpensesResp
+	for _, item := range userStats {
+
+		if item.Category != prevCategory {
+			result = &models.UserExpensesResp{}
+			result.Category = item.Category
+			userExpensesResp = append(userExpensesResp, result)
+		}
+
+		if item.Count == 0 {
+			result.UserExpenses = make([]models.UserExpenseExtended, 0)
+			continue
+		}
+
+		userExpense := models.UserExpenseExtended{
+			Description: item.Description,
+			Amount:      types.Money(item.Amount) / 100,
+			Date:        types.CustomTime(item.Date),
+		}
+
+		result.UserExpenses = append(result.UserExpenses, userExpense)
+		result.TotalExpenses += types.Money(item.Amount) / 100
+		result.ExpensesCount += item.Count
+
+		prevCategory = item.Category
+	}
+
+	return userExpensesResp, nil
 }

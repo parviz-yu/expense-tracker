@@ -35,19 +35,26 @@ func (m Money) IsPositive() bool {
 	return m >= 0
 }
 
-type CustomTime struct {
-	time.Time
-}
+type CustomTime time.Time
 
 const Layout = "02-01-2006"
 
 func (ct *CustomTime) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
 	if s == "null" {
-		ct.Time = time.Time{}
 		return
 	}
 
-	ct.Time, err = time.Parse(Layout, s)
+	t, err := time.Parse(Layout, s)
+	if err != nil {
+		return
+	}
+
+	*ct = CustomTime(t)
 	return
+}
+
+func (ct CustomTime) MarshalJSON() ([]byte, error) {
+
+	return []byte(`"` + time.Time(ct).Format(Layout) + `"`), nil
 }

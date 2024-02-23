@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func Error(w http.ResponseWriter, r *http.Request, code int, err error) {
@@ -25,5 +26,5 @@ func Respond(w http.ResponseWriter, r *http.Request, code int, data interface{})
 
 func URLQueryParam(r *http.Request, key string) string {
 	vals := r.URL.Query()
-	return vals.Get(key)
+	return strings.TrimSpace(vals.Get(key))
 }

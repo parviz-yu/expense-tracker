@@ -49,3 +49,24 @@ type Filters struct {
 	StartDate time.Time
 	EndDate   time.Time
 }
+
+type UserStats struct {
+	Category    string
+	Description string
+	Amount      int
+	Total       int
+	Count       int
+	Date        time.Time
+}
+
+type UserExpenseExtended struct {
+	Amount      types.Money      `json:"amount"`
+	Description string           `json:"description"`
+	Date        types.CustomTime `json:"date"`
+}
+type UserExpensesResp struct {
+	Category      string                `json:"category"`
+	TotalExpenses types.Money           `json:"total_expenses"`
+	ExpensesCount int                   `json:"expenses_count"`
+	UserExpenses  []UserExpenseExtended `json:"expenses"`
+}
