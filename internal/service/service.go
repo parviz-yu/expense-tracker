@@ -2,18 +2,21 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/parviz-yu/expense-tracker/internal/models"
 	"github.com/parviz-yu/expense-tracker/internal/storage"
+	"github.com/parviz-yu/expense-tracker/pkg/errs"
 	"github.com/parviz-yu/expense-tracker/pkg/logger"
 	"github.com/parviz-yu/expense-tracker/pkg/types"
 )
 
 type ServiceI interface {
 	AddExpense(ctx context.Context, expenseReq *models.ExpenseReq) error
+	AddNewCategory(ctx context.Context, category string) error
 	GetCategoriesExpenses(ctx context.Context, filters *models.Filters) ([]*models.CategoryExpensesResp, error)
 	GetUserExpenses(ctx context.Context, userID string, filters *models.Filters) ([]*models.UserExpensesResp, error)
 }
@@ -65,6 +68,44 @@ func (s *service) AddExpense(ctx context.Context, expenseReq *models.ExpenseReq)
 	}
 
 	log.Info("expense successfully added")
+
+	return nil
+}
+
+func (s *service) AddNewCategory(ctx context.Context, category string) error {
+	const fn = "service.AddNewCategory"
+
+	log := logger.With(
+		s.log,
+		logger.String("request_id", middleware.GetReqID(ctx)),
+		logger.Any("category", category),
+	)
+
+	log.Info("checking category for existance...")
+
+	id, err := s.strg.Category().GetCategoryID(ctx, category)
+	if err != nil && !errors.Is(err, errs.ErrCategoryNotExists) {
+		log.Error("failed to get category_id", logger.Error(err))
+
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	if id != 0 {
+		err := errs.ErrCategoryAlreadyExists
+		log.Error("failed to add new category", logger.Error(err))
+
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	log.Info("adding new category", logger.String("category", category))
+
+	if err := s.strg.Category().AddNewCategory(ctx, category); err != nil {
+		log.Error("failed to add new category", logger.Error(err))
+
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+
+	log.Info("category successfully added", logger.String("category", category))
 
 	return nil
 }

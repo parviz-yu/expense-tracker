@@ -14,6 +14,7 @@ type StorageI interface {
 
 type CategoryRepoI interface {
 	GetCategoryID(ctx context.Context, name string) (int, error)
+	AddNewCategory(ctx context.Context, name string) error
 }
 
 type ExpenseRepoI interface {

@@ -13,9 +13,11 @@ func SetUpRouter(h *handlers.Handler, log logger.LoggerI) *chi.Mux {
 	r.Use(handlers.NewMWLogger(log))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.URLFormat)
+	r.Use(middleware.Recoverer)
 
 	r.Route("/api/v1/tracker", func(r chi.Router) {
 		r.Post("/", h.AddExpense)
+		r.Post("/categories", h.AddNewCategory)
 		r.Get("/stats/categories", h.UsersCategoriesStats)
 		r.Get("/stats/users/{id}", h.UserStats)
 	})
